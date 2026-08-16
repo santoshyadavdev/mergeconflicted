@@ -31,6 +31,9 @@ Given these GitHub review stats for user "${username}":
 ${statsJson}
 
 Classify them into a reviewer archetype. Be creative, funny, and insightful.
+Consider patterns like: high approval rate with very few or short comments may indicate
+someone who delegates reviews to AI tools (e.g., "The AI Delegator", "The Bot Whisperer").
+Other archetypes might include The Nitpicker, The Mentor, The Rubber Stamper, The Gatekeeper, etc.
 Return ONLY valid JSON (no markdown, no code fences) with this exact structure:
 {
   "archetype": "string — the personality name (e.g., The Nitpicker, The Mentor, The Rubber Stamper)",
