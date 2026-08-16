@@ -23,11 +23,15 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 export async function fetchGitHubStats(
   username: string,
   fetchFn: typeof fetch = fetch,
+  githubToken?: string,
 ): Promise<GitHubFetchResult> {
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     'User-Agent': 'mergeconflicted-app',
   };
+  if (githubToken) {
+    headers['Authorization'] = `Bearer ${githubToken}`;
+  }
 
   // Fetch user profile
   const userRes = await fetchFn(`${GITHUB_API}/users/${encodeURIComponent(username)}`, { headers });
@@ -50,23 +54,33 @@ export async function fetchGitHubStats(
     `${GITHUB_API}/users/${encodeURIComponent(username)}/events/public?per_page=100`,
     { headers },
   );
-  const eventsData = eventsRes.ok
-    ? ((await eventsRes.json()) as Array<{
-        type: string;
-        created_at: string;
-        payload: {
-          review?: { state: string; body: string };
-          comment?: { body: string };
-        };
-      }>)
-    : [];
+  if (eventsRes.status === 403 || eventsRes.status === 429) {
+    throw new Error(`GitHub rate limit exceeded (${eventsRes.status})`);
+  }
+  if (!eventsRes.ok) {
+    throw new Error(`GitHub events API error: ${eventsRes.status}`);
+  }
+  const eventsData = (await eventsRes.json()) as Array<{
+    type: string;
+    created_at: string;
+    payload: {
+      review?: { state: string; body: string };
+      comment?: { body: string };
+    };
+  }>;
 
   // Fetch total PRs reviewed via search
   const searchRes = await fetchFn(
     `${GITHUB_API}/search/issues?q=reviewed-by:${encodeURIComponent(username)}+type:pr&per_page=1`,
     { headers },
   );
-  const searchData = searchRes.ok ? ((await searchRes.json()) as { total_count: number }) : { total_count: 0 };
+  if (searchRes.status === 403 || searchRes.status === 429) {
+    throw new Error(`GitHub rate limit exceeded (${searchRes.status})`);
+  }
+  if (!searchRes.ok) {
+    throw new Error(`GitHub search API error: ${searchRes.status}`);
+  }
+  const searchData = (await searchRes.json()) as { total_count: number };
 
   // Aggregate stats
   let approvedCount = 0;

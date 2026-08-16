@@ -86,7 +86,7 @@ describe('handleReviewRequest', () => {
 
     expect(result.personality.archetype).toBe('The Nitpicker');
     expect(result.cachedAt).toBeNull();
-    expect(fetchGitHubStats).toHaveBeenCalledWith('octocat');
+    expect(fetchGitHubStats).toHaveBeenCalledWith('octocat', undefined, undefined);
     expect(mockKV.put).toHaveBeenCalled();
   });
 

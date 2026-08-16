@@ -61,4 +61,33 @@ describe('fetchGitHubStats', () => {
 
     await expect(fetchGitHubStats('nonexistent', mockFetch as unknown as typeof fetch)).rejects.toThrow('User not found');
   });
+
+  it('should throw on rate limit (403) for events', async () => {
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(mockUserResponse)))
+      .mockResolvedValueOnce(new Response('Forbidden', { status: 403 }));
+
+    await expect(fetchGitHubStats('octocat', mockFetch as unknown as typeof fetch)).rejects.toThrow('GitHub rate limit exceeded (403)');
+  });
+
+  it('should throw on rate limit (429) for search', async () => {
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(mockUserResponse)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(mockEventsResponse)))
+      .mockResolvedValueOnce(new Response('Too Many Requests', { status: 429 }));
+
+    await expect(fetchGitHubStats('octocat', mockFetch as unknown as typeof fetch)).rejects.toThrow('GitHub rate limit exceeded (429)');
+  });
+
+  it('should include Authorization header when token provided', async () => {
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(mockUserResponse)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(mockEventsResponse)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(mockSearchResponse)));
+
+    await fetchGitHubStats('octocat', mockFetch as unknown as typeof fetch, 'ghp_test123');
+
+    const firstCallHeaders = mockFetch.mock.calls[0][1].headers;
+    expect(firstCallHeaders['Authorization']).toBe('Bearer ghp_test123');
+  });
 });

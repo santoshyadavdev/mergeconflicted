@@ -37,6 +37,9 @@ import { FormsModule } from '@angular/forms';
             Discover
           </button>
         </form>
+        @if (validationError()) {
+          <p class="text-red-400 text-sm mt-3" role="alert">{{ validationError() }}</p>
+        }
         <p class="text-gray-600 text-sm mt-4">We analyze public review activity only</p>
       </div>
     </div>
@@ -45,11 +48,21 @@ import { FormsModule } from '@angular/forms';
 export class HomePage {
   private readonly router = inject(Router);
   protected readonly username = signal('');
+  protected readonly validationError = signal('');
+
+  private static readonly GITHUB_USERNAME_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/;
 
   protected onSubmit(): void {
     const trimmed = this.username().trim();
-    if (trimmed) {
-      this.router.navigate(['/reviewer', trimmed]);
+    if (!trimmed) {
+      this.validationError.set('Please enter a GitHub username');
+      return;
     }
+    if (trimmed.length > 39 || !HomePage.GITHUB_USERNAME_PATTERN.test(trimmed)) {
+      this.validationError.set('Invalid GitHub username — only letters, digits, and hyphens allowed');
+      return;
+    }
+    this.validationError.set('');
+    this.router.navigate(['/reviewer', trimmed]);
   }
 }

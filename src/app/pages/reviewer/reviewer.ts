@@ -1,5 +1,6 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map, switchMap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -45,8 +46,25 @@ interface ReviewerState {
 export class ReviewerPage {
   private readonly route = inject(ActivatedRoute);
   private readonly reviewService = inject(ReviewService);
+  private readonly titleService = inject(Title);
+  private readonly meta = inject(Meta);
 
   protected readonly username = computed(() => this.route.snapshot.paramMap.get('username') ?? '');
+
+  constructor() {
+    effect(() => {
+      const s = this.state();
+      if (s.data) {
+        const { personality, profile } = s.data;
+        const title = `${profile.login} is "${personality.archetype}" ${personality.emoji} — MergeConflicted`;
+        const description = `${personality.tagline} — ${personality.description}`;
+        this.titleService.setTitle(title);
+        this.meta.updateTag({ property: 'og:title', content: title });
+        this.meta.updateTag({ property: 'og:description', content: description });
+        this.meta.updateTag({ property: 'og:url', content: `https://mergeconflicted.dev/reviewer/${profile.login}` });
+      }
+    });
+  }
 
   private readonly result$ = this.route.paramMap.pipe(
     map((params) => params.get('username') ?? ''),
@@ -55,11 +73,14 @@ export class ReviewerPage {
         map((data): ReviewerState => ({ loading: false, data, error: null })),
         catchError((err) => {
           const status = err.status as number;
+          const code = err.error?.code as string | undefined;
           let message = 'Something went wrong — please try again later';
-          if (status === 404) {
+          if (status === 404 || code === 'USER_NOT_FOUND') {
             message = `User "${username}" not found — check the spelling and try again`;
+          } else if (status === 422 || code === 'NO_REVIEW_ACTIVITY') {
+            message = `User "${username}" has no public review activity yet`;
           } else if (status === 429) {
-            message = 'GitHub is busy — please try again in a few minutes';
+            message = 'Too many requests — please try again in a few minutes';
           }
           return of<ReviewerState>({ loading: false, data: null, error: message });
         }),

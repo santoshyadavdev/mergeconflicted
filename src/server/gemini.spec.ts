@@ -46,6 +46,10 @@ describe('generatePersonality', () => {
     expect(result.emoji).toBe('🔍');
     expect(result.tagline).toBe('No detail escapes my review');
     expect(result.strengths).toHaveLength(3);
+    // Stats should be overwritten from GitHub data, not Gemini
+    expect(result.stats.reviewsAnalyzed).toBe(42);
+    expect(result.stats.approvalRate).toBe('24%');
+    expect(result.stats.mostActiveDay).toBe('Tuesday');
     expect(mockGenAI.models.generateContent).toHaveBeenCalledTimes(1);
   });
 
@@ -59,5 +63,17 @@ describe('generatePersonality', () => {
     };
 
     await expect(generatePersonality('octocat', mockStats, mockGenAI as never)).rejects.toThrow();
+  });
+
+  it('should throw on missing required fields', async () => {
+    const mockGenAI = {
+      models: {
+        generateContent: vi.fn().mockResolvedValue({
+          text: JSON.stringify({ archetype: 'Test' }),
+        }),
+      },
+    };
+
+    await expect(generatePersonality('octocat', mockStats, mockGenAI as never)).rejects.toThrow('Invalid personality response');
   });
 });

@@ -11,7 +11,7 @@ import { isPlatformBrowser, DOCUMENT } from '@angular/common';
         class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors cursor-pointer"
         [attr.aria-label]="'Copy link to ' + username() + ' reviewer profile'"
       >
-        {{ copied() ? '✓ Copied!' : '🔗 Copy Link' }}
+        {{ copied() ? '✓ Copied!' : copyFailed() ? '✗ Copy failed' : '🔗 Copy Link' }}
       </button>
       <a
         data-testid="share-x"
@@ -61,12 +61,26 @@ export class ShareButtons {
     return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(this.profileUrl())}`;
   });
 
+  protected readonly copyFailed = signal(false);
+
   protected copyLink(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      navigator.clipboard.writeText(this.profileUrl()).then(() => {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    if (!navigator.clipboard?.writeText) {
+      this.copyFailed.set(true);
+      setTimeout(() => this.copyFailed.set(false), 2000);
+      return;
+    }
+
+    navigator.clipboard.writeText(this.profileUrl()).then(
+      () => {
         this.copied.set(true);
         setTimeout(() => this.copied.set(false), 2000);
-      });
-    }
+      },
+      () => {
+        this.copyFailed.set(true);
+        setTimeout(() => this.copyFailed.set(false), 2000);
+      },
+    );
   }
 }

@@ -15,19 +15,24 @@ export async function handleReviewRequest(
   forceRefresh: boolean,
   kv: KVNamespace,
   geminiApiKey: string,
+  githubToken?: string,
 ): Promise<ReviewAnalysisResponse> {
   const cacheKey = `reviewer:${username.toLowerCase()}`;
 
-  // Check cache unless force refresh
+  // Check cache unless force refresh — treat KV as optional
   if (!forceRefresh) {
-    const cached = await kv.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached) as ReviewAnalysisResponse;
+    try {
+      const cached = await kv.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached) as ReviewAnalysisResponse;
+      }
+    } catch {
+      // KV read/parse failure — skip cache, fetch fresh
     }
   }
 
   // Fetch GitHub data
-  const { profile, stats } = await fetchGitHubStats(username);
+  const { profile, stats } = await fetchGitHubStats(username, undefined, githubToken);
 
   // Check if user has any review activity
   if (stats.totalReviewEvents === 0 && stats.totalPRsReviewed === 0) {
@@ -44,12 +49,16 @@ export async function handleReviewRequest(
     cachedAt: null,
   };
 
-  // Cache the result
-  const toCache: ReviewAnalysisResponse = {
-    ...response,
-    cachedAt: new Date().toISOString(),
-  };
-  await kv.put(cacheKey, JSON.stringify(toCache), { expirationTtl: CACHE_TTL_SECONDS });
+  // Cache the result — ignore write failures
+  try {
+    const toCache: ReviewAnalysisResponse = {
+      ...response,
+      cachedAt: new Date().toISOString(),
+    };
+    await kv.put(cacheKey, JSON.stringify(toCache), { expirationTtl: CACHE_TTL_SECONDS });
+  } catch {
+    // KV write failure — result is still valid, skip caching
+  }
 
   return response;
 }
