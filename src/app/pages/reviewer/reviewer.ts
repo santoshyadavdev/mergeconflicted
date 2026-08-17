@@ -33,7 +33,7 @@ interface ReviewerState {
     } @else if (state().data; as data) {
       <div class="max-w-2xl mx-auto px-4 py-12">
         <app-personality-card [personality]="data.personality" [profile]="data.profile" />
-        <app-share-buttons [username]="data.profile.login" [archetype]="data.personality.archetype" />
+        <app-share-buttons class="block mt-6" [username]="data.profile.login" [archetype]="data.personality.archetype" />
         <div class="text-center mt-8">
           <a routerLink="/" class="text-purple-400 hover:text-purple-300 transition-colors">
             ← Try Another Username

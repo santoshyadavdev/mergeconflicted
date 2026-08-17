@@ -30,7 +30,10 @@
             "server": "src/main.server.ts",
             "outputMode": "server",
             "security": {
-              "allowedHosts": []
+              "allowedHosts": [
+                "localhost",
+                "mergeconflicted.santosh-yadav198613.workers.dev"
+              ]
             },
             "ssr": {
               "entry": "src/server.ts",
