@@ -1,59 +1,134 @@
-# Mergeconflicted
+# MergeConflicted
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.4.
+Discover your code reviewer personality. Enter a GitHub username, and the app analyses that
+user's public review activity and asks Gemini to classify them into a reviewer archetype —
+The Nitpicker, The Mentor, The Rubber Stamper, and whatever else the model invents.
 
-## Development server
+Live at <https://mergeconflicted.santosh-yadav198613.workers.dev>
 
-To start a local development server, run:
+## How it works
 
-```bash
-ng serve
+1. `GET /api/review/:username` hits the Cloudflare Worker.
+2. The Worker checks the `REVIEWER_CACHE` KV namespace (24h TTL).
+3. On a miss, it pulls the user's public events from the GitHub API and aggregates review
+   stats — approvals, changes requested, comment lengths, most active day.
+4. Those stats go to Gemini, which returns the archetype as JSON.
+5. The result is cached and rendered. `/reviewer/:username` is server-rendered, so shared
+   links preview correctly.
+
+## Tech stack
+
+- **Angular 22** — standalone components, signals, `httpResource` for data fetching
+- **Angular SSR** (`@angular/ssr`) — home page prerendered, reviewer pages server-rendered
+- **Cloudflare Workers** — hosts the API, SSR, and static assets
+- **Workers KV** — response cache
+- **Gemini** (`@google/genai`) — personality classification
+- **Tailwind CSS v4** and **Vitest**
+
+## Project structure
+
+```
+src/
+  server.ts               Worker entry — /api routes, SSR, static asset fallback
+  server/
+    github.ts             GitHub API fetching and stat aggregation
+    gemini.ts             Prompt construction and response parsing
+    review-handler.ts     Orchestration and KV caching
+  app/
+    pages/home            Username entry form
+    pages/reviewer        Result page (SSR)
+    components/           personality-card, share-buttons, loading-steps
+    services/             review.service.ts — httpResource wrapper for the API
+cloudflare/
+  xhr2-stub.mjs           Bundler stub, see "Cloudflare notes"
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Getting started
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Requires Node.js 20+ and pnpm.
 
 ```bash
-ng generate component component-name
+pnpm install
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+### Local development
 
 ```bash
-ng generate --help
+pnpm preview   # ng build + wrangler dev  →  http://localhost:8788
 ```
 
-## Building
+Use this for anything that touches the API. `pnpm start` (`ng serve`) is faster for pure UI
+work with hot reload, but **`/api/*` returns 404 there** — the Angular dev server does not
+recognise the Worker's `export default { fetch }` handler and falls back to its own SSR
+middleware, so the Worker routes never run.
 
-To build the project run:
+For local secrets, create `.dev.vars` (git-ignored):
+
+```
+GEMINI_API_KEY=your-key
+GITHUB_TOKEN=your-pat
+```
+
+`GEMINI_API_KEY` is required. `GITHUB_TOKEN` is optional but recommended — unauthenticated
+GitHub API requests are rate limited to 60/hour.
+
+### Tests
 
 ```bash
-ng build
+pnpm test
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Note that `angular.json` excludes `src/server/**` from the test target, so the specs for
+`github.ts`, `gemini.ts`, and `review-handler.ts` do not currently run.
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Deployment
 
 ```bash
-ng test
+pnpm deploy    # ng build + wrangler deploy
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+Secrets are set separately from `.dev.vars`:
 
 ```bash
-ng e2e
+pnpm exec wrangler secret put GEMINI_API_KEY
+pnpm exec wrangler secret put GITHUB_TOKEN
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Bindings live in `wrangler.jsonc`: `ASSETS` for static files and `REVIEWER_CACHE` for the KV
+cache.
 
-## Additional Resources
+## API
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+`GET /api/review/:username`
+
+| Query | Description |
+| --- | --- |
+| `refresh=true` | Bypass the KV cache. Limited to one refresh per username per minute. |
+
+Errors return `{ error, code }`:
+
+| Status | Code |
+| --- | --- |
+| 404 | `USER_NOT_FOUND` |
+| 422 | `NO_REVIEW_ACTIVITY` |
+| 429 | `RATE_LIMITED` / `REFRESH_RATE_LIMITED` |
+| 500 | `INTERNAL_ERROR` |
+
+## Cloudflare notes
+
+Three settings exist specifically to make Angular SSR work on workerd. They look removable
+but are not:
+
+- **`ssr.platform: "neutral"`** in `angular.json`. Without it the server bundle is built for
+  Node and injects `createRequire`, which throws on deploy.
+- **`security.allowedHosts`** in `angular.json`. Angular validates the `Host` header as SSRF
+  protection, and an empty list rejects every request — including your own domain. New
+  deployment hostnames must be added here.
+- **`alias.xhr2`** in `wrangler.jsonc`, pointing at `cloudflare/xhr2-stub.mjs`. Angular's
+  HttpClient has a dead-code `import('xhr2')` fallback that Wrangler still has to resolve at
+  bundle time. The stub satisfies the bundler and keeps the Node-only library out of the
+  Worker.
+
+`@google/genai` is imported via its `/web` entry point for the same reason — the package's
+default export condition is a shim that throws outside Node or a browser.
+
