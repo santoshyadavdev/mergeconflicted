@@ -33,7 +33,8 @@
               "allowedHosts": []
             },
             "ssr": {
-              "entry": "src/server.ts"
+              "entry": "src/server.ts",
+              "platform": "neutral"
             }
           },
           "configurations": {
