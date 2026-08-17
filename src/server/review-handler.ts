@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI } from '@google/genai/web';
 import { ReviewAnalysisResponse } from '../app/models/reviewer.model';
 import { fetchGitHubStats } from './github';
 import { generatePersonality } from './gemini';
