@@ -32,6 +32,15 @@ describe('HomePage', () => {
     expect(button).toBeTruthy();
   });
 
+  it('should link to the GitHub repository', async () => {
+    const fixture = TestBed.createComponent(HomePage);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const link = el.querySelector('a[data-testid="github-link"]') as HTMLAnchorElement;
+    expect(link.href).toBe('https://github.com/santoshyadavdev/mergeconflicted');
+    expect(link.rel).toContain('noopener');
+  });
+
   it('should navigate to reviewer page on submit', async () => {
     const fixture = TestBed.createComponent(HomePage);
     const router = TestBed.inject(Router);

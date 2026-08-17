@@ -41,6 +41,16 @@ import { FormsModule } from '@angular/forms';
           <p class="text-red-400 text-sm mt-3" role="alert">{{ validationError() }}</p>
         }
         <p class="text-gray-600 text-sm mt-4">We analyze public review activity only</p>
+        <a
+          data-testid="github-link"
+          href="https://github.com/santoshyadavdev/mergeconflicted"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block mt-6 text-sm text-gray-500 hover:text-gray-300 transition-colors underline underline-offset-4 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded"
+        >
+          View source on GitHub
+          <span class="sr-only">(opens in a new tab)</span>
+        </a>
       </div>
     </div>
   `,
