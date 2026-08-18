@@ -70,6 +70,24 @@ describe('fetchGitHubStats', () => {
     expect(result.stats.totalPRsReviewed).toBe(42);
   });
 
+  it('should count body-less reviews as zero-length in the average', async () => {
+    const silentReviews = [
+      { user: { login: 'octocat' }, state: 'APPROVED', body: '', submitted_at: '2026-08-10T10:00:00Z' },
+      { user: { login: 'octocat' }, state: 'APPROVED', body: null, submitted_at: '2026-08-10T11:00:00Z' },
+      { user: { login: 'octocat' }, state: 'COMMENTED', body: 'x'.repeat(400), submitted_at: '2026-08-10T12:00:00Z' },
+    ];
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(mockUserResponse)))
+      .mockResolvedValueOnce(new Response(JSON.stringify([])))
+      .mockResolvedValueOnce(new Response(JSON.stringify(mockSearchResponse)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(silentReviews)));
+
+    const result = await fetchGitHubStats('octocat', mockFetch as unknown as typeof fetch);
+
+    // 400 chars over 3 reviews, not over the 1 that had a body
+    expect(result.stats.avgCommentLength).toBe(133);
+  });
+
   it('should throw on 404', async () => {
     const mockFetch = vi.fn().mockResolvedValueOnce(new Response('Not Found', { status: 404 }));
 
