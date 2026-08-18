@@ -133,6 +133,8 @@ export async function fetchGitHubStats(
   let changesRequestedCount = 0;
   let commentOnlyCount = 0;
   let reviewCommentCount = 0;
+  let totalCommentChars = 0;
+  let writtenOpportunities = 0;
   const commentBodies: string[] = [];
   const reviewDays: Record<string, number> = {};
   const lowerUsername = username.toLowerCase();
@@ -147,6 +149,9 @@ export async function fetchGitHubStats(
       else if (state === 'commented') commentOnlyCount++;
       else continue;
 
+      // Silent reviews count as zero-length so they pull the average down
+      writtenOpportunities++;
+      totalCommentChars += review.body?.length ?? 0;
       if (review.body) {
         commentBodies.push(review.body);
       }
@@ -161,14 +166,16 @@ export async function fetchGitHubStats(
   for (const event of eventsData) {
     if (event.type === 'PullRequestReviewCommentEvent' && event.payload.comment) {
       reviewCommentCount++;
+      writtenOpportunities++;
+      totalCommentChars += event.payload.comment.body?.length ?? 0;
       if (event.payload.comment.body) {
         commentBodies.push(event.payload.comment.body);
       }
     }
   }
 
-  const totalCommentLength = commentBodies.reduce((sum, body) => sum + body.length, 0);
-  const avgCommentLength = commentBodies.length > 0 ? Math.round(totalCommentLength / commentBodies.length) : 0;
+  const avgCommentLength =
+    writtenOpportunities > 0 ? Math.round(totalCommentChars / writtenOpportunities) : 0;
 
   return {
     profile: {
