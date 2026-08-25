@@ -2,6 +2,8 @@ import { GoogleGenAI } from '@google/genai/web';
 import { ReviewerPersonality } from '../app/models/reviewer.model';
 import { GitHubAggregatedStats } from './github';
 
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
+
 function buildPrompt(username: string, stats: GitHubAggregatedStats): string {
   const totalReviews = stats.totalReviewEvents || 1;
   const approvalRate = Math.round((stats.approvedCount / totalReviews) * 100);
@@ -91,7 +93,7 @@ export async function generatePersonality(
   const prompt = buildPrompt(username, stats);
 
   const response = await genAI.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: GEMINI_MODEL,
     contents: prompt,
   });
 
