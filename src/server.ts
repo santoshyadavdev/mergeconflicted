@@ -1,5 +1,6 @@
 import { AngularAppEngine } from '@angular/ssr';
 import { handleReviewRequest } from './server/review-handler';
+import { ReviewAnalysisResponse } from './app/models/reviewer.model';
 
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
@@ -14,6 +15,7 @@ interface Env {
 const angularApp = new AngularAppEngine();
 
 const API_REVIEW_PATTERN = /^\/api\/review\/([a-zA-Z0-9\-]+)$/;
+const API_OG_PATTERN = /^\/api\/og(?:\/([a-zA-Z0-9\-]+))?$/;
 
 // Simple in-memory rate limiter for refresh requests (per-worker instance)
 const refreshCooldowns = new Map<string, number>();
@@ -36,6 +38,46 @@ function mapErrorCode(message: string): string {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+
+    // OG image route: /api/og or /api/og/:username
+    const ogMatch = url.pathname.match(API_OG_PATTERN);
+    if (ogMatch) {
+      try {
+        const username = ogMatch[1];
+        let ogData: { username: string; archetype: string; emoji: string; tagline: string; avatarUrl: string } | undefined;
+
+        if (username) {
+          // Try to load cached reviewer data for a personalized image
+          try {
+            const cached = await env.REVIEWER_CACHE.get(`reviewer:${username.toLowerCase()}`);
+            if (cached) {
+              const result = JSON.parse(cached) as ReviewAnalysisResponse;
+              ogData = {
+                username: result.profile.login,
+                archetype: result.personality.archetype,
+                emoji: result.personality.emoji,
+                tagline: result.personality.tagline,
+                avatarUrl: result.profile.avatarUrl,
+              };
+            }
+          } catch {
+            // Cache miss or parse error — fall through to default image
+          }
+        }
+
+        const { generateOgImage } = await import('./server/og-image');
+        const png = await generateOgImage(ogData);
+        return new Response(png as unknown as BodyInit, {
+          headers: {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+          },
+        });
+      } catch {
+        // OG generation failed — return 404 so the fallback static image is used
+        return new Response('OG image generation failed', { status: 500 });
+      }
+    }
 
     // API route: /api/review/:username
     const match = url.pathname.match(API_REVIEW_PATTERN);
