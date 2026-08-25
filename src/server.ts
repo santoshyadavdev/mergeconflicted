@@ -12,10 +12,20 @@ interface Env {
   GITHUB_TOKEN?: string;
 }
 
+function escapeAttr(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 const angularApp = new AngularAppEngine();
 
 const API_REVIEW_PATTERN = /^\/api\/review\/([a-zA-Z0-9\-]+)$/;
 const API_OG_PATTERN = /^\/api\/og(?:\/([a-zA-Z0-9\-]+))?$/;
+const REVIEWER_PAGE_PATTERN = /^\/reviewer\/([a-zA-Z0-9\-]+)$/;
+const BASE_URL = 'https://mergeconflicted.santosh-yadav198613.workers.dev';
 
 // Simple in-memory rate limiter for refresh requests (per-worker instance)
 const refreshCooldowns = new Map<string, number>();
@@ -122,6 +132,53 @@ export default {
             headers: { 'Content-Type': 'application/json' },
           },
         );
+      }
+    }
+
+    // For reviewer pages, inject personalized OG meta tags into the SSR HTML
+    const reviewerMatch = url.pathname.match(REVIEWER_PAGE_PATTERN);
+    if (reviewerMatch) {
+      const username = reviewerMatch[1];
+      const angularResponse = await angularApp.handle(request);
+      if (angularResponse) {
+        let ogMeta: { title: string; description: string; url: string; image: string; imageAlt: string } | undefined;
+        try {
+          const cached = await env.REVIEWER_CACHE.get(`reviewer:${username.toLowerCase()}`);
+          if (cached) {
+            const result = JSON.parse(cached) as ReviewAnalysisResponse;
+            const { personality, profile } = result;
+            ogMeta = {
+              title: `${profile.login} is "${personality.archetype}" ${personality.emoji} — MergeConflicted`,
+              description: `${personality.tagline} — ${personality.description}`,
+              url: `${BASE_URL}/reviewer/${profile.login}`,
+              image: `${BASE_URL}/api/og/${profile.login}`,
+              imageAlt: `${profile.login}'s code review personality: ${personality.archetype}`,
+            };
+          }
+        } catch {
+          // Cache miss — use defaults
+        }
+
+        if (ogMeta) {
+          const html = await angularResponse.text();
+          const updated = html
+            .replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeAttr(ogMeta.title)}">`)
+            .replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeAttr(ogMeta.description)}">`)
+            .replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${escapeAttr(ogMeta.url)}">`)
+            .replace(/<meta property="og:image" content="[^"]*">/, `<meta property="og:image" content="${escapeAttr(ogMeta.image)}">`)
+            .replace(/<meta property="og:image:alt" content="[^"]*">/, `<meta property="og:image:alt" content="${escapeAttr(ogMeta.imageAlt)}">`)
+            .replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeAttr(ogMeta.title)}">`)
+            .replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeAttr(ogMeta.description)}">`)
+            .replace(/<meta name="twitter:image" content="[^"]*">/, `<meta name="twitter:image" content="${escapeAttr(ogMeta.image)}">`)
+            .replace(/<meta name="twitter:image:alt" content="[^"]*">/, `<meta name="twitter:image:alt" content="${escapeAttr(ogMeta.imageAlt)}">`)
+            .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(ogMeta.title)}</title>`);
+
+          return new Response(updated, {
+            status: angularResponse.status,
+            headers: angularResponse.headers,
+          });
+        }
+        return angularResponse;
       }
     }
 

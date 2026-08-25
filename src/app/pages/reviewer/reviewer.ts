@@ -46,8 +46,8 @@ interface ReviewerState {
 export class ReviewerPage {
   private static readonly DEFAULT_TITLE = 'MergeConflicted — What Kind of Reviewer Are You?';
   private static readonly DEFAULT_DESCRIPTION = 'Discover your code review personality based on your GitHub activity';
-  private static readonly DEFAULT_URL = 'https://mergeconflicted.dev';
-  private static readonly DEFAULT_OG_IMAGE = 'https://mergeconflicted.dev/api/og';
+  private static readonly DEFAULT_URL = 'https://mergeconflicted.santosh-yadav198613.workers.dev';
+  private static readonly DEFAULT_OG_IMAGE = 'https://mergeconflicted.santosh-yadav198613.workers.dev/api/og';
   private static readonly DEFAULT_OG_IMAGE_ALT = 'MergeConflicted — Discover your code review personality';
 
   private readonly route = inject(ActivatedRoute);
@@ -65,8 +65,8 @@ export class ReviewerPage {
         const { personality, profile } = s.data;
         const title = `${profile.login} is "${personality.archetype}" ${personality.emoji} — MergeConflicted`;
         const description = `${personality.tagline} — ${personality.description}`;
-        const url = `https://mergeconflicted.dev/reviewer/${profile.login}`;
-        const ogImage = `https://mergeconflicted.dev/api/og/${profile.login}`;
+        const url = `https://mergeconflicted.santosh-yadav198613.workers.dev/reviewer/${profile.login}`;
+        const ogImage = `https://mergeconflicted.santosh-yadav198613.workers.dev/api/og/${profile.login}`;
 
         this.titleService.setTitle(title);
 
