@@ -59,7 +59,7 @@ export class ReviewerPage {
         const title = `${profile.login} is "${personality.archetype}" ${personality.emoji} — MergeConflicted`;
         const description = `${personality.tagline} — ${personality.description}`;
         const url = `https://mergeconflicted.dev/reviewer/${profile.login}`;
-        const ogImage = 'https://mergeconflicted.dev/og-image.png';
+        const ogImage = `https://mergeconflicted.dev/api/og/${profile.login}`;
 
         this.titleService.setTitle(title);
 
