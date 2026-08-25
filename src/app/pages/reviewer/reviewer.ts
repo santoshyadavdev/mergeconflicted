@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -44,10 +44,17 @@ interface ReviewerState {
   `,
 })
 export class ReviewerPage {
+  private static readonly DEFAULT_TITLE = 'MergeConflicted — What Kind of Reviewer Are You?';
+  private static readonly DEFAULT_DESCRIPTION = 'Discover your code review personality based on your GitHub activity';
+  private static readonly DEFAULT_URL = 'https://mergeconflicted.dev';
+  private static readonly DEFAULT_OG_IMAGE = 'https://mergeconflicted.dev/api/og';
+  private static readonly DEFAULT_OG_IMAGE_ALT = 'MergeConflicted — Discover your code review personality';
+
   private readonly route = inject(ActivatedRoute);
   private readonly reviewService = inject(ReviewService);
   private readonly titleService = inject(Title);
   private readonly meta = inject(Meta);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly username = computed(() => this.route.snapshot.paramMap.get('username') ?? '');
 
@@ -75,8 +82,27 @@ export class ReviewerPage {
         this.meta.updateTag({ name: 'twitter:description', content: description });
         this.meta.updateTag({ name: 'twitter:image', content: ogImage });
         this.meta.updateTag({ name: 'twitter:image:alt', content: `${profile.login}'s code review personality: ${personality.archetype}` });
+      } else if (!s.loading) {
+        this.restoreDefaultMeta();
       }
     });
+
+    this.destroyRef.onDestroy(() => this.restoreDefaultMeta());
+  }
+
+  private restoreDefaultMeta(): void {
+    this.titleService.setTitle(ReviewerPage.DEFAULT_TITLE);
+
+    this.meta.updateTag({ property: 'og:title', content: ReviewerPage.DEFAULT_TITLE });
+    this.meta.updateTag({ property: 'og:description', content: ReviewerPage.DEFAULT_DESCRIPTION });
+    this.meta.updateTag({ property: 'og:url', content: ReviewerPage.DEFAULT_URL });
+    this.meta.updateTag({ property: 'og:image', content: ReviewerPage.DEFAULT_OG_IMAGE });
+    this.meta.updateTag({ property: 'og:image:alt', content: ReviewerPage.DEFAULT_OG_IMAGE_ALT });
+
+    this.meta.updateTag({ name: 'twitter:title', content: ReviewerPage.DEFAULT_TITLE });
+    this.meta.updateTag({ name: 'twitter:description', content: ReviewerPage.DEFAULT_DESCRIPTION });
+    this.meta.updateTag({ name: 'twitter:image', content: ReviewerPage.DEFAULT_OG_IMAGE });
+    this.meta.updateTag({ name: 'twitter:image:alt', content: ReviewerPage.DEFAULT_OG_IMAGE_ALT });
   }
 
   private readonly result$ = this.route.paramMap.pipe(
