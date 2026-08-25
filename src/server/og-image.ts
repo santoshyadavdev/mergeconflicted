@@ -23,7 +23,6 @@ async function loadFont(weight: 400 | 700): Promise<ArrayBuffer> {
 interface OgImageData {
   username: string;
   archetype: string;
-  emoji: string;
   tagline: string;
   avatarUrl: string;
 }
@@ -110,32 +109,13 @@ function buildMarkup(data: OgImageData) {
                       type: 'div',
                       props: {
                         style: {
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '16px',
+                          fontSize: '48px',
+                          fontWeight: 700,
+                          background: 'linear-gradient(90deg, #c084fc, #f472b6)',
+                          backgroundClip: 'text',
+                          color: 'transparent',
                         },
-                        children: [
-                          {
-                            type: 'span',
-                            props: {
-                              style: { fontSize: '56px' },
-                              children: data.emoji,
-                            },
-                          },
-                          {
-                            type: 'span',
-                            props: {
-                              style: {
-                                fontSize: '48px',
-                                fontWeight: 700,
-                                background: 'linear-gradient(90deg, #c084fc, #f472b6)',
-                                backgroundClip: 'text',
-                                color: 'transparent',
-                              },
-                              children: data.archetype,
-                            },
-                          },
-                        ],
+                        children: data.archetype,
                       },
                     },
                     {
@@ -198,13 +178,6 @@ function buildDefaultMarkup() {
         gap: '24px',
       },
       children: [
-        {
-          type: 'div',
-          props: {
-            style: { fontSize: '72px' },
-            children: '🔍',
-          },
-        },
         {
           type: 'div',
           props: {
