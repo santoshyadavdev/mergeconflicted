@@ -58,10 +58,23 @@ export class ReviewerPage {
         const { personality, profile } = s.data;
         const title = `${profile.login} is "${personality.archetype}" ${personality.emoji} — MergeConflicted`;
         const description = `${personality.tagline} — ${personality.description}`;
+        const url = `https://mergeconflicted.dev/reviewer/${profile.login}`;
+        const ogImage = 'https://mergeconflicted.dev/og-image.png';
+
         this.titleService.setTitle(title);
+
+        // Open Graph
         this.meta.updateTag({ property: 'og:title', content: title });
         this.meta.updateTag({ property: 'og:description', content: description });
-        this.meta.updateTag({ property: 'og:url', content: `https://mergeconflicted.dev/reviewer/${profile.login}` });
+        this.meta.updateTag({ property: 'og:url', content: url });
+        this.meta.updateTag({ property: 'og:image', content: ogImage });
+        this.meta.updateTag({ property: 'og:image:alt', content: `${profile.login}'s code review personality: ${personality.archetype}` });
+
+        // Twitter Card
+        this.meta.updateTag({ name: 'twitter:title', content: title });
+        this.meta.updateTag({ name: 'twitter:description', content: description });
+        this.meta.updateTag({ name: 'twitter:image', content: ogImage });
+        this.meta.updateTag({ name: 'twitter:image:alt', content: `${profile.login}'s code review personality: ${personality.archetype}` });
       }
     });
   }
