@@ -1,19 +1,8 @@
-import satori, { init as initSatori } from 'satori/standalone';
-// @ts-expect-error — WASM module import handled by wrangler bundler
-import initYoga from 'satori/yoga.wasm';
+import satori from '@cf-wasm/satori';
 import { Resvg } from '@cf-wasm/resvg';
 
 const WIDTH = 1200;
 const HEIGHT = 630;
-
-let satoriInitialized = false;
-
-async function ensureSatori(): Promise<void> {
-  if (satoriInitialized) return;
-  const yoga = await initYoga();
-  await initSatori(yoga);
-  satoriInitialized = true;
-}
 
 const FONT_CACHE = new Map<string, ArrayBuffer>();
 
@@ -22,8 +11,8 @@ async function loadFont(weight: 400 | 700): Promise<ArrayBuffer> {
   const cached = FONT_CACHE.get(key);
   if (cached) return cached;
 
-  const url = `https://fonts.gstatic.com/s/inter/v21/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hjQ.woff`;
-  const boldUrl = `https://fonts.gstatic.com/s/inter/v21/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hjQ.woff`;
+  const url = `https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf`;
+  const boldUrl = `https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf`;
 
   const resp = await fetch(weight === 700 ? boldUrl : url);
   const buffer = await resp.arrayBuffer();
@@ -258,8 +247,6 @@ function buildDefaultMarkup() {
 }
 
 export async function generateOgImage(data?: OgImageData): Promise<Uint8Array> {
-  await ensureSatori();
-
   const [regular, bold] = await Promise.all([loadFont(400), loadFont(700)]);
 
   const markup = data ? buildMarkup(data) : buildDefaultMarkup();

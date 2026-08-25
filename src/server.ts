@@ -73,9 +73,10 @@ export default {
             'Cache-Control': 'public, max-age=3600, s-maxage=86400',
           },
         });
-      } catch {
-        // OG generation failed — return 404 so the fallback static image is used
-        return new Response('OG image generation failed', { status: 500 });
+      } catch (ogError) {
+        const message = ogError instanceof Error ? ogError.stack ?? ogError.message : 'Unknown error';
+        console.error('OG image generation failed:', message);
+        return new Response(`OG image generation failed: ${message}`, { status: 500 });
       }
     }
 

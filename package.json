@@ -23,9 +23,9 @@
     "@angular/router": "^22.1.0",
     "@angular/ssr": "^22.1.4",
     "@cf-wasm/resvg": "^0.4.0",
+    "@cf-wasm/satori": "^0.4.0",
     "@google/genai": "^2.17.1",
     "rxjs": "~7.8.0",
-    "satori": "^0.33.4",
     "tslib": "^2.3.0"
   },
   "devDependencies": {

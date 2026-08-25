@@ -40,7 +40,7 @@
               "platform": "neutral"
             },
             "externalDependencies": [
-              "satori",
+              "@cf-wasm/satori",
               "@cf-wasm/resvg"
             ]
           },
