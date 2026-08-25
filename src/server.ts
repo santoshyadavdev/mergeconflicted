@@ -54,7 +54,7 @@ export default {
     if (ogMatch) {
       try {
         const username = ogMatch[1];
-        let ogData: { username: string; archetype: string; emoji: string; tagline: string; avatarUrl: string } | undefined;
+        let ogData: { username: string; archetype: string; tagline: string; avatarUrl: string } | undefined;
 
         if (username) {
           // Try to load cached reviewer data for a personalized image
@@ -65,7 +65,6 @@ export default {
               ogData = {
                 username: result.profile.login,
                 archetype: result.personality.archetype,
-                emoji: result.personality.emoji,
                 tagline: result.personality.tagline,
                 avatarUrl: result.profile.avatarUrl,
               };
